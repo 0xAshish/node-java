@@ -12,35 +12,17 @@
       ['uname_m=="s390" or uname_m=="s390x"', {
         'target_arch': 's390'
       }],
-      ['uname_m=="ppc64" or uname_m=="ppc64le"', {
-        'target_arch': 'ppc64'
-      }],
       ['OS=="win"', {
         'javahome%': '<!(node findJavaHome.js)'
       }],
-      ['OS=="linux" or OS=="mac" or OS=="freebsd" or OS=="openbsd" or OS=="solaris"'  , {
+      ['OS=="linux" or OS=="mac" or OS=="freebsd" or OS=="openbsd" or OS=="solaris" or OS=="zos"', {
         'javahome%': '<!(node findJavaHome.js)'
       }],
-      ['OS=="mac"', {
-      	'javaver%' : "<!(awk -F/ -v h=`node findJavaHome.js` 'BEGIN {n=split(h, a); print a[2]; exit}')"
+      ['OS=="linux" or OS=="mac" or OS=="freebsd" or OS=="openbsd" or OS=="solaris" or OS=="zos"', {
+        'javalibdir%': "<!(./find_java_libdir.sh <(target_arch) <(OS))"
       }],
-      ['OS=="linux" and target_arch=="ia32"', {
-        'javalibdir%': "<!(h=\"`node findJavaHome.js`\" sh -c 'if [ -d \"$h/jre/lib/i386/classic\" ]; then echo $h/jre/lib/i386/classic; else echo $h/jre/lib/i386/server; fi')"
-      }],
-      ['OS=="linux" and target_arch=="x64"', {
-        'javalibdir%': "<!(h=\"`node findJavaHome.js`\" sh -c 'if [ -d \"$h/jre/lib/amd64/classic\" ]; then echo $h/jre/lib/amd64/classic; else echo $h/jre/lib/amd64/server; fi')"
-      }],
-      ['OS=="linux" and (target_arch=="s390x" or target_arch=="s390")', {
-        'javalibdir%': "<!(h=\"`node findJavaHome.js`\" sh -c 'if [ -d \"$h/jre/lib/s390x/classic\" ]; then echo $h/jre/lib/s390x/classic; else echo $h/jre/lib/s390/classic; fi')"
-      }],
-      ['OS=="linux" and (target_arch=="ppc64" or target_arch=="ppc")', {
-        'javalibdir%': "<!(h=\"`node findJavaHome.js`\" sh -c 'if [ -d \"$h/jre/lib/ppc64/classic\" ]; then echo $h/jre/lib/ppc64/classic; fi')"
-      }],
-      ['OS=="solaris" and target_arch=="ia32"', {
-        'javalibdir%': "<!(h=\"`node findJavaHome.js`\" sh -c 'if [ -d \"$h/jre/lib/i386/classic\" ]; then echo $h/jre/lib/i386/classic; else echo $h/jre/lib/i386/server; fi')"
-      }],
-      ['OS=="solaris" and target_arch=="x64"', {
-        'javalibdir%': "<!(h=\"`node findJavaHome.js`\" sh -c 'if [ -d \"$h/jre/lib/amd64/classic\" ]; then echo $h/jre/lib/amd64/classic; else echo $h/jre/lib/amd64/server; fi')"
+      ['OS=="zos"', {
+        'nodever%': '<!(node -e "console.log(process.versions.node)" | cut -d"." -f1)'
       }],
     ]
   },
@@ -89,8 +71,8 @@
               '<(javahome)/include/solaris',
             ],
             'libraries': [
-               '-L<(javahome)/jre/lib/<(arch)/server/',
-              '-Wl,-rpath,<(javahome)/jre/lib/<(arch)/server/',
+               '-L<(javalibdir)',
+              '-Wl,-rpath,<(javalibdir)',
               '-ljvm'
             ]
           }
@@ -101,8 +83,8 @@
               '<(javahome)/include/freebsd',
             ],
             'libraries': [
-              '-L<(javahome)/jre/lib/<(arch)/server/',
-              '-Wl,-rpath,<(javahome)/jre/lib/<(arch)/server/',
+              '-L<(javalibdir)',
+              '-Wl,-rpath,<(javalibdir)',
               '-ljvm'
             ]
           }
@@ -113,9 +95,28 @@
               '<(javahome)/include/openbsd',
             ],
             'libraries': [
-              '-L<(javahome)/jre/lib/<(arch)/server/',
-              '-Wl,-rpath,<(javahome)/jre/lib/<(arch)/server/',
+              '-L<(javalibdir)',
+              '-Wl,-rpath,<(javalibdir)',
               '-ljvm'
+            ]
+          }
+        ],
+        ['OS=="zos"',
+          {
+            'conditions': [
+              ['nodever<14',
+                {
+                  'cflags!': [ "-O2", "-O3" ]
+                }
+              ],
+              ['nodever<12',
+                {
+                  'cflags': [ "-U_VARARG_EXT_" ],
+                }
+              ]
+            ],
+            'libraries': [
+              '<(javalibdir)/libjvm.x'
             ]
           }
         ],
@@ -124,40 +125,14 @@
             'xcode_settings': {
               'OTHER_CFLAGS': ['-O3'],
             },
-            'conditions': [
-              ['javaver=="Library"',
-                {
-                  'include_dirs': [
-                    '<(javahome)/include',
-                    '<(javahome)/include/darwin'
-                  ],
-                  'libraries': [
-                    '-L<(javahome)/jre/lib/server',
-                    '-Wl,-rpath,<(javahome)/jre/lib/server',
-                    '-ljvm'
-                  ],
-                },
-              ],
-              ['javaver=="System"',
-                {
-                  'include_dirs': [
-                    '/System/Library/Frameworks/JavaVM.framework/Headers'
-                  ],
-                  'libraries': [
-                    '-framework JavaVM'
-                  ],
-                },
-              ],
-              ['javaver==""',
-                {
-                  'include_dirs': [
-                    '/System/Library/Frameworks/JavaVM.framework/Headers'
-                  ],
-                  'libraries': [
-                    '-framework JavaVM'
-                  ],
-                },
-              ],
+            'include_dirs': [
+              '<(javahome)/include',
+              '<(javahome)/include/darwin'
+            ],
+            'libraries': [
+              '-L<(javalibdir)',
+              '-Wl,-rpath,<(javalibdir)',
+              '-ljli'
             ],
           },
         ],

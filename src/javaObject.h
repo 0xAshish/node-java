@@ -13,7 +13,7 @@ class Java;
 
 class JavaObject : public Nan::ObjectWrap {
 public:
-  static void Init(v8::Handle<v8::Object> target);
+  static void Init(v8::Local<v8::Object> target);
   static v8::Local<v8::Object> New(Java* java, jobject obj);
   static v8::Local<v8::Object> NewProxy(Java* java, jobject obj, DynamicProxyData* dynamicProxyData);
 
@@ -30,6 +30,7 @@ protected:
 private:
   static NAN_METHOD(methodCall);
   static NAN_METHOD(methodCallSync);
+  static NAN_METHOD(methodCallPromise);
   static NAN_GETTER(fieldGetter);
   static NAN_SETTER(fieldSetter);
   static NAN_INDEX_GETTER(indexGetter);

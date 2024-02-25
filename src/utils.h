@@ -37,13 +37,17 @@ struct DynamicProxyData {
   std::string interfaceName;
   Nan::Persistent<v8::Object> functions;
   Nan::Persistent<v8::Value> jsObject;
+  unsigned int markerEnd;
+};
+
+struct DynamicProxyJsCallData {
+  DynamicProxyData *dynamicProxyData;
   std::string methodName;
   jobjectArray args;
   jobject result;
   std::string throwableClass;
   std::string throwableMessage;
   int done;
-  unsigned int markerEnd;
 };
 
 #define DYNAMIC_PROXY_DATA_MARKER_START 0x12345678
@@ -76,11 +80,16 @@ jobject longToJavaLongObj(JNIEnv *env, jlong l);
 jarray javaGetArgsForMethod(JNIEnv *env, jobject method, jarray args);
 jarray javaGetArgsForConstructor(JNIEnv *env, jobject method, jarray args);
 
-jclass javaFindClass(JNIEnv* env, std::string& className);
-jobject javaFindField(JNIEnv* env, jclass clazz, std::string& fieldName);
-jobject javaFindMethod(JNIEnv *env, jclass clazz, std::string& methodName, jobjectArray methodArgs);
+jclass javaFindClass(JNIEnv* env, const std::string& className);
+jobject javaFindField(JNIEnv* env, jclass clazz, const std::string& fieldName);
+jobject javaFindMethod(JNIEnv *env, jclass clazz, const std::string& methodName, jobjectArray methodArgs);
 jobject javaFindConstructor(JNIEnv *env, jclass clazz, jobjectArray methodArgs);
 void javaCastArguments(JNIEnv *env, jobjectArray methodArgs, jobject method);
+
+// TODO remove these functions after node nan gets updated
+v8::Local<v8::Value> GetHiddenValue(v8::Local<v8::Object> object, v8::Local<v8::String> key);
+void SetHiddenValue(v8::Local<v8::Object> object, v8::Local<v8::String> key, v8::Local<v8::Value> value);
+void SetHiddenValue(v8::NumberObject*, v8::Local<v8::String> key, v8::Local<v8::Value> value);
 
 #define assertNoException(env)      \
   if (env->ExceptionCheck()) {      \
@@ -88,7 +97,7 @@ void javaCastArguments(JNIEnv *env, jobjectArray methodArgs, jobject method);
     assert(false);                  \
   }
 
-std::string methodNotFoundToString(JNIEnv *env, jclass clazz, std::string methodName, bool constructor, Nan::NAN_METHOD_ARGS_TYPE args, int argStart, int argEnd);
+std::string methodNotFoundToString(JNIEnv *env, jclass clazz, const std::string& methodNameSig, bool constructor, Nan::NAN_METHOD_ARGS_TYPE args, int argStart, int argEnd);
 
 void unref(DynamicProxyData* dynamicProxyData);
 
@@ -112,7 +121,7 @@ void unref(DynamicProxyData* dynamicProxyData);
     return;                                                                                  \
   }                                                                                          \
   v8::Local<v8::String> _##ARGNAME##_obj = v8::Local<v8::String>::Cast(info[argsStart]);     \
-  v8::String::Utf8Value _##ARGNAME##_val(_##ARGNAME##_obj);                                  \
+  Nan::Utf8String _##ARGNAME##_val(_##ARGNAME##_obj);                                  \
   std::string ARGNAME = *_##ARGNAME##_val;                                                   \
   argsStart++;
 
@@ -133,11 +142,11 @@ void unref(DynamicProxyData* dynamicProxyData);
 #define EXCEPTION_CALL_CALLBACK(JAVA, STRBUILDER) \
   std::ostringstream errStr;                                                            \
   errStr << STRBUILDER;                                                                 \
-  v8::Handle<v8::Value> error = javaExceptionToV8(JAVA, env, errStr.str());             \
-  v8::Handle<v8::Value> argv[2];                                                        \
+  v8::Local<v8::Value> error = javaExceptionToV8(JAVA, env, errStr.str());             \
+  v8::Local<v8::Value> argv[2];                                                        \
   argv[0] = error;                                                                      \
   argv[1] = Nan::Undefined();                                                           \
-  v8::Function::Cast(*callback)->Call(Nan::GetCurrentContext()->Global(), 2, argv);
+  Nan::Call(callback.As<v8::Function>(), Nan::GetCurrentContext()->Global(), 2, argv);
 
 #define END_CALLBACK_FUNCTION(MSG) \
   if(callbackProvided) {                                     \

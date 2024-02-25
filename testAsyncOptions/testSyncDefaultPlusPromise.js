@@ -5,7 +5,6 @@
 
 var java = require("../");
 var assert = require("assert");
-var _ = require('lodash');
 
 java.asyncOptions = {
   syncSuffix: "",
@@ -20,11 +19,10 @@ module.exports = {
     test.ok(arrayList);
     test.ok(java.instanceOf(arrayList, "java.util.ArrayList"));
 
-    var api = _.functions(arrayList);
-    test.ok(_.includes(api, 'add'), 'Expected `add` to be present, but it is NOT.');
-    test.ok(_.includes(api, 'addP'), 'Expected `addP` to be present, but it is NOT.');
-    test.ok(!_.includes(api, 'addSync'), 'Expected `addSync` to NOT be present, but it is.');
-    test.ok(!_.includes(api, 'addAsync'), 'Expected `addAsync` to NOT be present, but it is.');
+    test.ok(typeof arrayList.add !== 'undefined', 'Expected `add` to be present, but it is NOT.');
+    test.ok(typeof arrayList.addP !== 'undefined', 'Expected `addP` to be present, but it is NOT.');
+    test.ok(typeof arrayList.addSync === 'undefined', 'Expected `addSync` to NOT be present, but it is.');
+    test.ok(typeof arrayList.addAsync === 'undefined', 'Expected `addAsync` to NOT be present, but it is.');
     test.done();
   },
 
@@ -45,12 +43,12 @@ module.exports = {
     var String = java.import("java.lang.String");
     test.ok(String);
 
-    var api = _.functions(String);
-    test.ok(_.includes(api, 'format'), 'Expected `format` to be present, but it is NOT.');
-    test.ok(_.includes(api, 'formatP'), 'Expected `formatP` to be present, but it is NOT.');
-    test.ok(!_.includes(api, 'formatSync'), 'Expected `formatSync` to NOT be present, but it is.');
-    test.ok(!_.includes(api, 'formatAsync'), 'Expected `formatAsync` to NOT be present, but it is.');
-    test.ok(!_.includes(api, 'formatundefined'), 'Expected `formatundefined` to NOT be present, but it is.');
+    var api = Object.keys(String).filter((key) => typeof String[key] === 'function');
+    test.ok(api.includes('format'), 'Expected `format` to be present, but it is NOT.');
+    test.ok(api.includes('formatP'), 'Expected `formatP` to be present, but it is NOT.');
+    test.ok(!api.includes('formatSync'), 'Expected `formatSync` to NOT be present, but it is.');
+    test.ok(!api.includes('formatAsync'), 'Expected `formatAsync` to NOT be present, but it is.');
+    test.ok(!api.includes('formatundefined'), 'Expected `formatundefined` to NOT be present, but it is.');
     test.done();
   },
 

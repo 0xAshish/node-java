@@ -96,13 +96,13 @@ exports['Promises'] = nodeunit.testCase({
         test.strictEqual(name, "java.util.ArrayList");
       })
       .then(function() {
-        list.addPromise('hello');
+        return list.addPromise('hello');
       })
       .then(function() {
-        list.addPromise('world');
+        return list.addPromise('world');
       })
       .then(function() {
-        list.addPromise('boo');
+        return list.addPromise('boo');
       })
       .then(function() {
         return list.iteratorPromise();
@@ -137,6 +137,8 @@ exports['Promises'] = nodeunit.testCase({
         return it.nextPromise();
       })
       .catch(function(err) {
+        console.log("DEBUG: expectException is %s. err = %s",
+                    expectException, err);
         test.ok(expectException);
       })
       .then(function() {

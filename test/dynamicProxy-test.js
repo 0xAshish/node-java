@@ -54,6 +54,24 @@ exports['Dynamic Proxy'] = nodeunit.testCase({
     test.done();
   },
 
+  "Listener test": function (test) {
+    var runData = '';
+
+    var myProxy = java.newProxy('ListenerInterface', {
+      onEvent: function (list, runtime) {
+        runData = 'onEvent';
+      }
+    });
+
+    var listenerTester = java.newInstanceSync("ListenerTester");
+    listenerTester.setListenerSync(myProxy);
+    listenerTester.raiseEventSync();
+
+    test.equals(runData, 'onEvent');
+
+    test.done();
+  },  
+
   "thread": function (test) {
     var callCount = 0;
 
@@ -219,7 +237,7 @@ exports['Dynamic Proxy'] = nodeunit.testCase({
       test.fail("Exception was not thrown");
     } catch (e) {
       test.equals(e.cause.getClassSync().getNameSync(), "java.lang.RuntimeException");
-      test.ok(/Caused by: node\.NodeJsException: myError/.test(e.message));
+      test.ok(/Caused by: node\.NodeJsException:.*myError/.test(e.message));
     }
 
     test.done();
@@ -238,7 +256,7 @@ exports['Dynamic Proxy'] = nodeunit.testCase({
         test.fail("Exception was not thrown");
     } catch (e) {
         test.equals(e.cause.getClassSync().getNameSync(), "java.lang.RuntimeException");
-        test.ok(/Caused by: node\.NodeJsException: Error: newError/.test(e.message));
+        test.ok(/Caused by: node\.NodeJsException:.*newError/.test(e.message));
     }
 
     test.done();
